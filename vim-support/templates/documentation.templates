@@ -1,0 +1,90 @@
+§ ============================================================================
+§  Documentation
+§ ============================================================================
+
+§ -------------------------------------------------------------
+§  Structure
+§ -------------------------------------------------------------
+
+== Documentation.chapter, ToC == below, noindent, map:dcc, sc:c ==
+ |CNUMBER%2|    |CNAME:c%++++++++++++++++++++++++++++++| ||CTAG||
+== Documentation.section, ToC == below, noindent, map:dcs, sc:s ==
+ |SNUMBER%3|    |SNAME:c%+++++++++++++++++++++++++++++| ||STAG||
+== Documentation.subsection, ToC == below, noindent, map:dcu, sc:u ==
+ |SSNUMBER%5|   |SSNAME:c%+++++++++++++++++++++++++++| ||SSTAG||
+== ENDTEMPLATE ==
+
+== Documentation.chapter, text == below, noindent, map:dtc, sc:c ==
+|Prompt( 'CNAME', '' )|
+==============================================================================
+|?CNUMBER%2|  |CNAME:u|                                       |<<>>| *|?CTAG|*
+==============================================================================
+
+<CURSOR>
+
+== Documentation.section, text == below, noindent, map:dts, sc:s ==
+|Prompt( 'SNAME', '' )|
+------------------------------------------------------------------------------
+|?SNUMBER%3|  |SNAME:u|                                       |<<>>| *|?STAG|*
+------------------------------------------------------------------------------
+
+<CURSOR>
+
+== Documentation.subsection, text == below, noindent, map:dtu, sc:u ==
+|Prompt( 'SSNAME', '' )|
+------------------------------------------------------------------------------
+
+|?SSNUMBER%5|  |SSNAME|                                      |<<>>| *|?SSTAG|*
+
+<CURSOR>
+
+== ENDTEMPLATE ==
+
+§ -------------------------------------------------------------
+§  Miscellany
+§ -------------------------------------------------------------
+
+== SEP: Documentation.sep1 ==
+
+== Documentation.separator == below, noindent ==
+------------------------------------------------------------------------------
+<CURSOR>
+== Documentation.function description == below, noindent, map:df, sc:f ==
+                                                   *|FUNCTION_NAME|()*
+<CURSOR>:
+
+	|?FUNCTION_NAME| (  ) ~
+
+Parameters:
+	xx - 
+Options:
+	"xx", xx - 
+Returns:
+	xx - 
+
+== Documentation.example == below, noindent, map:de, sc:e ==
+Example:
+>
+	<CURSOR><SPLIT>
+<
+== ENDTEMPLATE ==
+
+§ -------------------------------------------------------------
+§  Highlighting
+§ -------------------------------------------------------------
+
+== SEP: Documentation.sep2 ==
+
+== Documentation.magenta colored line == below, noindent, sc:m ==
+	<CURSOR> ~
+== Documentation.note == insert, noindent ==
+Note: <CURSOR>
+== Documentation.notes == insert, noindent ==
+Notes: <CURSOR>
+== Documentation.todo == below, noindent ==
+	*Todo		<CURSOR>
+== Documentation.error == below, noindent ==
+	*Error	<CURSOR>
+== ENDTEMPLATE ==
+
+§ vim:tw=78:noet:ts=2:ft=template:norl:
