@@ -1,8 +1,8 @@
-*vimsupport.txt*                 Vim Support                       Jan 08 2016
+*vimsupport.txt*                 Vim Support                       Jul 23 2016
 
 Vim Support                                         *vim-support* *vimsupport*
 
-                             Plug-in version 2.4pre
+                             Plug-in version 2.4
                         for Vim version 7.0 and above
                    Wolfgang Mehner <wolfgang-mehner@web.de>
                       Fritz Mehner <mehner.fritz@web.de>
@@ -125,7 +125,7 @@ n\cj.
 
 The comment sign " can be set or removed at the beginning of the current line
 or for a marked block using the menu items 'comment' (or \cc) and 'uncomment'
-(or \cu).  A single line needs not to be marked (normal mode, insert mode).
+(or \co). A single line needs not to be marked (normal mode, insert mode).
 
 A marked block
 
@@ -441,7 +441,7 @@ Legend:  (i) insert mode, (n) normal mode, (v) visual mode
   [n]\cj     adjust end-of-line comments     (n, i, v)
      \cs     set end-of-line comment column  (n)
   [n]\cc     comment code                    (n, i, v)
-  [n]\cu     uncomment code                  (n, i, v)
+  [n]\co     uncomment code                  (n, i, v)
      \ca     function description (auto)     (n, i, v)
      \cfr    frame comment                   (n, i)
      \cfu    function description            (n, i)
@@ -715,6 +715,13 @@ support this feature, so it should only contain basic information not
 pertaining to a specific programming language. It can be set up using a
 wizard, which is run by the map \ntw or the menu entry:
   Vim -> Snippets -> template setup wizard
+
+Further template files can be added using the call: >
+  call mmtemplates#config#Add ( 'vim', '<PATH>/some.templates', 'example', 'nte' )
+The first parameter adds the file to your VimL templates, the second is the
+path. The remaining two optional parameters specify the symbolic name for
+these templates and the map to edit them. The map is '\nte' in this example,
+if the standard mapleader is set.
 
 ------------------------------------------------------------------------------
 4.1  TEMPLATE FILES                               *vimsupport-templates-files*
