@@ -1,12 +1,14 @@
 "===============================================================================
 "
 "          File:  vim-support.vim
-" 
-"    Description:  Vim support     (VIM Version 7.0+)
+"
+"   Description:  Vim support     (VIM Version 7.0+)
 "
 "                  Write Vim-plugins by inserting comments, statements,
 "                  variables and builtins.
-" 
+"
+"                 See help file vimsupport.txt .
+"
 "   VIM Version:  7.0+
 "
 "        Author:  Wolfgang Mehner <wolfgang-mehner@web.de>
@@ -14,8 +16,9 @@
 "
 "       Version:  see variable g:VimSupportVersion below
 "       Created:  14.01.2012
+"      Revision:  12.11.2016
 "       License:  Copyright (c) 2012-2015, Fritz Mehner
-"                 Copyright (c) 2016-2016, Wolfgang Mehner
+"                 Copyright (c) 2016-2017, Wolfgang Mehner
 "                 This program is free software; you can redistribute it and/or
 "                 modify it under the terms of the GNU General Public License as
 "                 published by the Free Software Foundation, version 2 of the
@@ -26,47 +29,198 @@
 "                 PURPOSE.
 "                 See the GNU General Public License version 2 for more details.
 "===============================================================================
-"
+
+"-------------------------------------------------------------------------------
+" === Basic checks ===   {{{1
+"-------------------------------------------------------------------------------
+
+" need at least 7.0
 if v:version < 700
-  echohl WarningMsg | echo 'plugin vim-support.vim needs Vim version >= 7'| echohl None
-  finish
+	echohl WarningMsg
+	echo 'The plugin vim-support.vim needs Vim version >= 7.'
+	echohl None
+	finish
 endif
-"
-" Prevent duplicate loading:
-"
+
+" prevent duplicate loading
+" need compatible
 if exists("g:VimSupportVersion") || &cp
- finish
+	finish
 endif
+
+let g:VimSupportVersion= "2.5pre"                  " version number of this script; do not change
+
+"-------------------------------------------------------------------------------
+" === Auxiliary functions ===   {{{1
+"-------------------------------------------------------------------------------
+
+"-------------------------------------------------------------------------------
+" s:ApplyDefaultSetting : Write default setting to a global variable.   {{{2
 "
-let g:VimSupportVersion= "2.4"                  " version number of this script; do not change
+" Parameters:
+"   varname - name of the variable (string)
+"   value   - default value (string)
+" Returns:
+"   -
 "
-"===  FUNCTION  ================================================================
-"          NAME:  GetGlobalSetting     {{{1
-"   DESCRIPTION:  take over a global setting
-"    PARAMETERS:  varname - variable to set
-"       RETURNS:  
-"===============================================================================
-function! s:GetGlobalSetting ( varname )
-	if exists ( 'g:'.a:varname )
-		exe 'let s:'.a:varname.' = g:'.a:varname
-	endif
-endfunction    " ----------  end of function s:GetGlobalSetting  ----------
-"
-"===  FUNCTION  ================================================================
-"          NAME:  ApplyDefaultSetting     {{{1
-"   DESCRIPTION:  make a local setting global
-"    PARAMETERS:  varname - variable to set
-"       RETURNS:  
-"===============================================================================
-function! s:ApplyDefaultSetting ( varname )
+" If g:<varname> does not exists, assign:
+"   g:<varname> = value
+"-------------------------------------------------------------------------------
+
+function! s:ApplyDefaultSetting ( varname, value )
 	if ! exists ( 'g:'.a:varname )
-		exe 'let g:'.a:varname.' = s:'.a:varname
+		let { 'g:'.a:varname } = a:value
 	endif
 endfunction    " ----------  end of function s:ApplyDefaultSetting  ----------
+
+"-------------------------------------------------------------------------------
+" s:ErrorMsg : Print an error message.   {{{2
 "
-"------------------------------------------------------------------------------
-" *** PLATFORM SPECIFIC ITEMS ***     {{{1
-"------------------------------------------------------------------------------
+" Parameters:
+"   line1 - a line (string)
+"   line2 - a line (string)
+"   ...   - ...
+" Returns:
+"   -
+"-------------------------------------------------------------------------------
+
+function! s:ErrorMsg ( ... )
+	echohl WarningMsg
+	for line in a:000
+		echomsg line
+	endfor
+	echohl None
+endfunction    " ----------  end of function s:ErrorMsg  ----------
+
+"-------------------------------------------------------------------------------
+" s:GetGlobalSetting : Get a setting from a global variable.   {{{2
+"
+" Parameters:
+"   varname - name of the variable (string)
+"   glbname - name of the global variable (string, optional)
+" Returns:
+"   -
+"
+" If 'glbname' is given, it is used as the name of the global variable.
+" Otherwise the global variable will also be named 'varname'.
+"
+" If g:<glbname> exists, assign:
+"   s:<varname> = g:<glbname>
+"-------------------------------------------------------------------------------
+
+function! s:GetGlobalSetting ( varname, ... )
+	let lname = a:varname
+	let gname = a:0 >= 1 ? a:1 : lname
+	if exists ( 'g:'.gname )
+		let { 's:'.lname } = { 'g:'.gname }
+	endif
+endfunction    " ----------  end of function s:GetGlobalSetting  ----------
+
+"-------------------------------------------------------------------------------
+" s:ImportantMsg : Print an important message.   {{{2
+"
+" Parameters:
+"   line1 - a line (string)
+"   line2 - a line (string)
+"   ...   - ...
+" Returns:
+"   -
+"-------------------------------------------------------------------------------
+
+function! s:ImportantMsg ( ... )
+	echohl Search
+	echo join ( a:000, "\n" )
+	echohl None
+endfunction    " ----------  end of function s:ImportantMsg  ----------
+
+"-------------------------------------------------------------------------------
+" s:SID : Return the <SID>.   {{{2
+"
+" Parameters:
+"   -
+" Returns:
+"   SID - the SID of the script (string)
+"-------------------------------------------------------------------------------
+
+function! s:SID ()
+	return matchstr ( expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$' )
+endfunction    " ----------  end of function s:SID  ----------
+
+"-------------------------------------------------------------------------------
+" s:UserInput : Input after a highlighted prompt.   {{{2
+"
+" Parameters:
+"   prompt - the prompt (string)
+"   text - the default input (string)
+"   compl - completion (string, optional)
+"   clist - list, if 'compl' is "customlist" (list, optional)
+" Returns:
+"   input - the user input, an empty sting if the user hit <ESC> (string)
+"-------------------------------------------------------------------------------
+
+function! s:UserInput ( prompt, text, ... )
+
+	echohl Search                                         " highlight prompt
+	call inputsave()                                      " preserve typeahead
+	if a:0 == 0 || a:1 == ''
+		let retval = input( a:prompt, a:text )
+	elseif a:1 == 'customlist'
+		let s:UserInputList = a:2
+		let retval = input( a:prompt, a:text, 'customlist,<SNR>'.s:SID().'_UserInputEx' )
+		let s:UserInputList = []
+	else
+		let retval = input( a:prompt, a:text, a:1 )
+	endif
+	call inputrestore()                                   " restore typeahead
+	echohl None                                           " reset highlighting
+
+	let retval  = substitute( retval, '^\s\+', "", "" )   " remove leading whitespaces
+	let retval  = substitute( retval, '\s\+$', "", "" )   " remove trailing whitespaces
+
+	return retval
+
+endfunction    " ----------  end of function s:UserInput ----------
+
+"-------------------------------------------------------------------------------
+" s:UserInputEx : ex-command for s:UserInput.   {{{3
+"-------------------------------------------------------------------------------
+function! s:UserInputEx ( ArgLead, CmdLine, CursorPos )
+	if empty( a:ArgLead )
+		return copy( s:UserInputList )
+	endif
+	return filter( copy( s:UserInputList ), 'v:val =~ ''\V\<'.escape(a:ArgLead,'\').'\w\*''' )
+endfunction    " ----------  end of function s:UserInputEx  ----------
+" }}}3
+"-------------------------------------------------------------------------------
+
+"-------------------------------------------------------------------------------
+" s:WarningMsg : Print a warning/error message.   {{{2
+"
+" Parameters:
+"   line1 - a line (string)
+"   line2 - a line (string)
+"   ...   - ...
+" Returns:
+"   -
+"-------------------------------------------------------------------------------
+
+function! s:WarningMsg ( ... )
+	echohl WarningMsg
+	echo join ( a:000, "\n" )
+	echohl None
+endfunction    " ----------  end of function s:WarningMsg  ----------
+
+" }}}2
+"-------------------------------------------------------------------------------
+
+"-------------------------------------------------------------------------------
+" === Module setup ===   {{{1
+"-------------------------------------------------------------------------------
+
+"-------------------------------------------------------------------------------
+" == Platform specific items ==   {{{2
+"-------------------------------------------------------------------------------
+
 let s:MSWIN = has("win16") || has("win32") || has("win64") || has("win95")
 let s:UNIX	= has("unix")  || has("macunix") || has("win32unix")
 "
@@ -128,24 +282,23 @@ endif
 "
 let s:Vim_AdditionalTemplates   = mmtemplates#config#GetFt ( 'vim' )
 let s:Vim_CodeSnippets  				= s:plugin_dir.'/vim-support/codesnippets/'
-"
-"----------------------------------------------------------------------
-"  *** MODUL GLOBAL VARIABLES *** {{{1
-"----------------------------------------------------------------------
-"
+
+"-------------------------------------------------------------------------------
+" == Various settings ==   {{{2
+"-------------------------------------------------------------------------------
+
 let s:Vim_CreateMenusDelayed= 'yes'
 let s:Vim_MenuVisible				= 'no'
 let s:Vim_GuiSnippetBrowser = 'gui'             " gui / commandline
 let s:Vim_LoadMenus         = 'yes'             " load the menus?
 let s:Vim_RootMenu          = '&Vim'            " name of the root menu
 let s:Vim_CreateMapsForHelp = 'no'              " create maps for modifiable help buffers as well
-"
-let s:Vim_MapLeader             = ''            " default: do not overwrite 'maplocalleader'
+
 let s:Vim_LineEndCommColDefault = 49
 let s:VimStartComment						= '"'
 let s:Vim_Printheader   				= "%<%f%h%m%<  %=%{strftime('%x %X')}     Page %N"
 let s:Vim_TemplateJumpTarget 		= '<+\i\++>\|{+\i\++}\|<-\i\+->\|{-\i\+-}'
-"
+
 call s:GetGlobalSetting ( 'Vim_GuiSnippetBrowser' )
 call s:GetGlobalSetting ( 'Vim_LoadMenus' )
 call s:GetGlobalSetting ( 'Vim_RootMenu' )
@@ -158,59 +311,13 @@ call s:GetGlobalSetting ( 'Vim_CodeSnippets' )
 call s:GetGlobalSetting ( 'Vim_CreateMenusDelayed' )
 call s:GetGlobalSetting ( 'Vim_LineEndCommColDefault' )
 
-call s:ApplyDefaultSetting ( 'Vim_MapLeader'    )
-"
-let s:Vim_Printheader  = escape( s:Vim_Printheader, ' %' )
-"
-"===  FUNCTION  ================================================================
-"          NAME:  SaveOption     {{{1
-"   DESCRIPTION:  save a Vim option
-"    PARAMETERS:  option - option name
-"                 ...    - characters to be escaped (optional)
-"       RETURNS:  
-"===============================================================================
-function! s:SaveOption ( option, ... )
-	exe 'let escaped =&'.a:option
-	if a:0 > 0
-		let escaped = escape( escaped, a:1 )
-	endif
-	exe 'let s:'.a:option.'_saved = "'.escaped.'"'
-endfunction " ---------- end of function s:SaveOption ----------
-"
-"===  FUNCTION  ================================================================
-"          NAME:  RestoreOption     {{{1
-"   DESCRIPTION:  restore a Vim option
-"    PARAMETERS:  option - option to be restored
-"       RETURNS:  
-"===============================================================================
-function! s:RestoreOption ( option )
-	exe 'let saved = s:'.a:option.'_saved'
-	exe ':setlocal '.a:option.'="'.saved.'"'
-endfunction " ---------- end of function s:RestoreOption ----------
-"
-"===  FUNCTION  ================================================================
-"          NAME:  Vim_Input     {{{1
-"   DESCRIPTION:  Input after a highlighted prompt
-"    PARAMETERS:  prompt       - prompt string
-"                 defaultreply - default reply
-"                 ...          - completion
-"       RETURNS:  reply
-"===============================================================================
-function! Vim_Input ( prompt, defaultreply, ... )
-	echohl Search																					" highlight prompt
-	call inputsave()																			" preserve typeahead
-	if a:0 == 0 || empty(a:1)
-		let retval	=input( a:prompt, a:defaultreply )
-	else
-		let retval	=input( a:prompt, a:defaultreply, a:1 )
-	endif
-	call inputrestore()																		" restore typeahead
-	echohl None																						" reset highlighting
-	let retval  = substitute( retval, '^\s\+', '', '' )		" remove leading whitespaces
-	let retval  = substitute( retval, '\s\+$', '', '' )		" remove trailing whitespaces
-	return retval
-endfunction    " ----------  end of function Vim_Input ----------
-"
+call s:ApplyDefaultSetting ( 'Vim_MapLeader', '' )                " default: do not overwrite 'maplocalleader'
+
+let s:Vim_Printheader = escape( s:Vim_Printheader, ' %' )
+
+" }}}2
+"-------------------------------------------------------------------------------
+
 "===  FUNCTION  ================================================================
 "          NAME:  Vim_AdjustLineEndComm     {{{1
 "   DESCRIPTION:  adjust end-of-line comments
@@ -324,7 +431,7 @@ function! Vim_GetLineEndCommCol ()
 	if actcol+1 == virtcol("$")
 		let	b:Vim_LineEndCommentColumn	= ''
 		while match( b:Vim_LineEndCommentColumn, '^\s*\d\+\s*$' ) < 0
-			let b:Vim_LineEndCommentColumn = Vim_Input( 'start line-end comment at virtual column : ', actcol, '' )
+			let b:Vim_LineEndCommentColumn = s:UserInput( 'start line-end comment at virtual column : ', actcol, '' )
 		endwhile
 	else
 		let	b:Vim_LineEndCommentColumn	= virtcol(".")
@@ -444,17 +551,19 @@ function! Vim_CommentCode( toggle ) range
 	endfor
 	"
 endfunction    " ----------  end of function Vim_CommentCode  ----------
+
+"-------------------------------------------------------------------------------
+" s:GetFunctionParameters : Get function name and parameters.   {{{1
 "
-"===  FUNCTION  ================================================================
-"          NAME:  GetFunctionParameters     {{{1
-"   DESCRIPTION:  get function name and parameters
-"    PARAMETERS:  fun_line - function head
-"       RETURNS:  scope     - The scope. (string, 's:', 'g:' or empty)
-"                 fun_name  - The name of the function (string, id without the scope)
-"                 param_str - Names of the parameters. (list of strings)
-"                 ellipsis  - Has an ellipsis? (boolean)
-"                 range     - Has a range? (boolean)
-"===============================================================================
+" Parameters:
+"   fun_line - function head (string)
+" Returns:
+"   scope     - the scope (string, 's:', 'g:' or empty)
+"   fun_name  - the name of the function (string, id without the scope)
+"   param_str - names of the parameters (list of strings)
+"   ellipsis  - has an ellipsis? (boolean)
+"   range     - has a range? (boolean)
+"-------------------------------------------------------------------------------
 function! s:GetFunctionParameters ( fun_line )
 	"
 	" 1. function names with '.' (dictionaries) and '#' (autoload)
@@ -544,28 +653,27 @@ function! Vim_Help ()
 		endif
 	endif
 endfunction    " ----------  end of function Vim_Help  ----------
-"
-"------------------------------------------------------------------------------
-"  Vim_HelpVimSupport : help vimsupport     {{{1
-"------------------------------------------------------------------------------
-function! Vim_HelpVimSupport ()
+
+"-------------------------------------------------------------------------------
+" s:HelpPlugin : Plug-in help.   {{{1
+"-------------------------------------------------------------------------------
+function! s:HelpPlugin ()
 	try
-		:help vimsupport
+		help vimsupport
 	catch
-		exe ':helptags '.s:plugin_dir.'/doc'
-		:help vimsupport
+		exe 'helptags '.s:plugin_dir.'/doc'
+		help vimsupport
 	endtry
-endfunction    " ----------  end of function Vim_HelpVimSupport ----------
+endfunction    " ----------  end of function s:HelpPlugin ----------
+
+"-------------------------------------------------------------------------------
+" s:RereadTemplates : Initial loading of the templates.   {{{1
 "
-"===  FUNCTION  ================================================================
-"          NAME:  Vim_RereadTemplates     {{{1
-"   DESCRIPTION:  Reread the templates. Also set the character which starts
-"                 the comments in the template files.
-"    PARAMETERS:  -
-"       RETURNS:  
-"===============================================================================
-function! Vim_RereadTemplates ()
-	"
+" Reread the templates. Also set the character which starts the comments in
+" the template files.
+"-------------------------------------------------------------------------------
+function! s:RereadTemplates ()
+
 	"-------------------------------------------------------------------------------
 	" setup template library
 	"-------------------------------------------------------------------------------
@@ -629,42 +737,60 @@ function! Vim_RereadTemplates ()
 	"-------------------------------------------------------------------------------
 	" further setup
 	"-------------------------------------------------------------------------------
-	"
+
 	" get the jump tags
 	let s:Vim_TemplateJumpTarget = mmtemplates#core#Resource ( g:Vim_Templates, "jumptag" )[0]
-	"
-endfunction    " ----------  end of function Vim_RereadTemplates  ----------
+
+endfunction    " ----------  end of function s:RereadTemplates  ----------
+
+"-------------------------------------------------------------------------------
+" s:CheckTemplatePersonalization : Check template personalization.   {{{1
 "
-"===  FUNCTION  ================================================================
-"          NAME:  s:CheckTemplatePersonalization     {{{1
-"   DESCRIPTION:  check whether the name, .. has been set
-"    PARAMETERS:  -
-"       RETURNS:
-"===============================================================================
+" Check whether the |AUTHOR| has been set in the template library.
+" If not, display help on how to set up the template personalization.
+"-------------------------------------------------------------------------------
 let s:DoneCheckTemplatePersonalization = 0
-"
+
 function! s:CheckTemplatePersonalization ()
-	"
+
 	" check whether the templates are personalized
-	if ! s:DoneCheckTemplatePersonalization
-				\ && mmtemplates#core#ExpandText ( g:Vim_Templates, '|AUTHOR|' ) == 'YOUR NAME'
-		let s:DoneCheckTemplatePersonalization = 1
-		"
-		let maplead = mmtemplates#core#Resource ( g:Vim_Templates, 'get', 'property', 'Templates::Mapleader' )[0]
-		"
-		redraw
-		echohl Search
-		echo 'The personal details (name, mail, ...) are not set in the template library.'
-		echo 'They are used to generate comments, ...'
-		echo 'To set them, start the setup wizard using:'
-		echo '- use the menu entry "Vim -> Snippets -> template setup wizard"'
-		echo '- use the map "'.maplead.'ntw" inside a Vim buffer'
-		echo "\n"
-		echohl None
+	if s:DoneCheckTemplatePersonalization
+				\ || mmtemplates#core#ExpandText ( g:Vim_Templates, '|AUTHOR|' ) != 'YOUR NAME'
+		return
 	endif
-	"
+
+	let s:DoneCheckTemplatePersonalization = 1
+
+	let maplead = mmtemplates#core#Resource ( g:Vim_Templates, 'get', 'property', 'Templates::Mapleader' )[0]
+
+	redraw
+	call s:ImportantMsg ( 'The personal details are not set in the template library. Use the map "'.maplead.'ntw".' )
+
 endfunction    " ----------  end of function s:CheckTemplatePersonalization  ----------
+
+"-------------------------------------------------------------------------------
+" s:JumpForward : Jump to the next target.   {{{1
 "
+" If no target is found, jump behind the current string
+"
+" Parameters:
+"   -
+" Returns:
+"   empty sting
+"-------------------------------------------------------------------------------
+function! s:JumpForward ()
+	let match = search( s:Vim_TemplateJumpTarget, 'c' )
+	if match > 0
+		" remove the target
+		call setline( match, substitute( getline('.'), s:Vim_TemplateJumpTarget, '', '' ) )
+	else
+		" try to jump behind parenthesis or strings
+		call search( "[\]})\"'`]", 'W' )
+		normal! l
+	endif
+	return ''
+endfunction    " ----------  end of function s:JumpForward  ----------
+
 "===  FUNCTION  ================================================================
 "          NAME:  InitMenus     {{{1
 "   DESCRIPTION:  Initialize menus.
@@ -774,28 +900,9 @@ function! s:InitMenus()
 	"
   exe ahead.'&keyword\ help<Tab>'.esc_mapl.'hk\ \ <S-F1>    :call Vim_Help()<CR>'
 	exe ahead.'-SEP1- :'
-	exe ahead.'&help\ (Vim-Support)<Tab>'.esc_mapl.'hp        :call Vim_HelpVimSupport()<CR>'
+	exe ahead.'&help\ (Vim-Support)<Tab>'.esc_mapl.'hp        :call <SID>HelpPlugin()<CR>'
 	"
 endfunction    " ----------  end of function s:InitMenus  ----------
-"
-"===  FUNCTION  ================================================================
-"          NAME:  Vim_JumpForward     {{{1
-"   DESCRIPTION:  Jump to the next target, otherwise behind the current string.
-"    PARAMETERS:  -
-"       RETURNS:  empty string
-"===============================================================================
-function! Vim_JumpForward ()
-  let match	= search( s:Vim_TemplateJumpTarget, 'c' )
-	if match > 0
-		" remove the target
-		call setline( match, substitute( getline('.'), s:Vim_TemplateJumpTarget, '', '' ) )
-	else
-		" try to jump behind parenthesis or strings 
-		call search( "[\]})\"'`]", 'W' )
-		normal! l
-	endif
-	return ''
-endfunction    " ----------  end of function Vim_JumpForward  ----------
 
 "===  FUNCTION  ================================================================
 "          NAME:  Vim_CodeSnippet     {{{1
@@ -986,8 +1093,8 @@ function! s:CreateAdditionalMaps ()
 	nnoremap    <buffer>  <silent>  <LocalLeader>rs         :call Vim_Settings(0)<CR>
 	nnoremap    <buffer>  <silent>  <LocalLeader>hk          :call Vim_Help()<CR>
 	inoremap    <buffer>  <silent>  <LocalLeader>hk     <C-C>:call Vim_Help()<CR>
-	 noremap    <buffer>  <silent>  <LocalLeader>hp         :call Vim_HelpVimSupport()<CR>
-	inoremap    <buffer>  <silent>  <LocalLeader>hp    <C-C>:call Vim_HelpVimSupport()<CR>
+	 noremap    <buffer>  <silent>  <LocalLeader>hp         :call <SID>HelpPlugin()<CR>
+	inoremap    <buffer>  <silent>  <LocalLeader>hp    <C-C>:call <SID>HelpPlugin()<CR>
 	" 
 	if has("gui_running")
 		nnoremap    <buffer>  <silent>  <S-F1>             :call Vim_Help()<CR>
@@ -1008,10 +1115,10 @@ function! s:CreateAdditionalMaps ()
 	"-------------------------------------------------------------------------------
 	" templates
 	"-------------------------------------------------------------------------------
-	"
-	nnoremap    <buffer>  <silent>  <C-j>       i<C-R>=Vim_JumpForward()<CR>
-	inoremap    <buffer>  <silent>  <C-j>  <C-G>u<C-R>=Vim_JumpForward()<CR>
-	"
+
+	nnoremap    <buffer>  <silent>  <C-j>       i<C-R>=<SID>JumpForward()<CR>
+	inoremap    <buffer>  <silent>  <C-j>  <C-G>u<C-R>=<SID>JumpForward()<CR>
+
 	" ----------------------------------------------------------------------------
 	"
 	call mmtemplates#core#CreateMaps ( 'g:Vim_Templates', g:Vim_MapLeader, 'do_special_maps', 'do_del_opt_map' ) |
@@ -1082,7 +1189,7 @@ function! Vim_CreateGuiMenus ()
 		anoremenu   <silent> 40.1000 &Tools.-SEP100- :
 		anoremenu   <silent> 40.1170 &Tools.Unload\ Vim\ Support :call Vim_RemoveGuiMenus()<CR>
 		"
-		call Vim_RereadTemplates()
+		call s:RereadTemplates()
 		call s:InitMenus () 
 		"
 		let s:Vim_MenuVisible = 'yes'
@@ -1111,9 +1218,9 @@ function! Vim_RemoveGuiMenus ()
 	endif
 endfunction    " ----------  end of function Vim_RemoveGuiMenus  ----------
 
-"----------------------------------------------------------------------
-"  *** SETUP PLUGIN ***  {{{1
-"----------------------------------------------------------------------
+"-------------------------------------------------------------------------------
+" === Setup: Templates, toolbox and menus ===   {{{1
+"-------------------------------------------------------------------------------
 
 call Vim_ToolMenu()
 
@@ -1127,7 +1234,7 @@ if has( 'autocmd' )
         \ if &filetype == 'vim' || ( &filetype == 'help' && &modifiable == 1 && s:Vim_CreateMapsForHelp == 'yes' ) |
         \   if ! exists( 'g:Vim_Templates' ) |
         \     if s:Vim_LoadMenus == 'yes' | call Vim_CreateGuiMenus ()  |
-        \     else                        | call Vim_RereadTemplates () |
+        \     else                        | call s:RereadTemplates () |
         \     endif |
         \   endif |
         \   call s:CreateAdditionalMaps() |
@@ -1136,6 +1243,7 @@ if has( 'autocmd' )
 
 endif
 " }}}1
-"
+"-------------------------------------------------------------------------------
+
 " =====================================================================================
 " vim: tabstop=2 shiftwidth=2 foldmethod=marker
